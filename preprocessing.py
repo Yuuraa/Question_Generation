@@ -5,15 +5,17 @@ import random
 import copy
 import csv
 import logging
+from functools import partial
+from multiprocessing import Pool, cpu_count
 
 # 학습에 사용할 SQuAD 데이터 셋 load
 # print(os.path.isfile("./korquad_files/KorQuAD_v1.0_train.json"))
-import sys
-import json
+from .utils import DataProcessor
+import numpy as np
+from tqdm import tqdm
+import torch
+from torch.utils.data import TensorDataset
 
-"""
-뭐 하는 건지 모르겠음..
-"""
 def _improve_answer_span(doc_tokens, input_start, input_end, tokenizer, orig_answer_text):
     """Returns tokenized answer spans that better match the annotated answer."""
     tok_answer_text = " ".join(tokenizer.tokenize(orig_answer_text))
@@ -407,8 +409,9 @@ class SquadProcessor(DataProcessor):
     Overriden by SquadV1Processor and SquadV2Processor, used by the version 1.1 and version 2.0 of SQuAD, respectively.
     """
 
-    train_file = None
-    dev_file = None
+    # Default files
+    train_file = "KorQuAD_v1.0_train.json"
+    dev_file = "KorQuAD_v1.0_dev.json"
 
     def _get_example_from_tensor_dict(self, tensor_dict, evaluate=False):
         if not evaluate:
@@ -460,28 +463,40 @@ class SquadProcessor(DataProcessor):
 
         return examples
 
-    # 학습시킬 파일 찾기
-    def get_train_examples(self, train_dir, filename=None):
+    # 학습시킬 파일 열고, create_examples를 통해 사용할 형식에 맞게 변환하기    
+    def get_train_examples(self, data_dir, filename=None):
         """
         Returns the training examples from the data directory.
-        만약 다른 training example 사용하고 싶다면 specify 해줘야 함
+        Args:
+            data_dir: Directory containing the data files used for training and evaluating.
+            filename: None by default, specify this if the training file has a different name than the original one
+                which is `train-v1.1.json` and `train-v2.0.json` for squad versions 1.1 and 2.0 respectively.
+        특정 지어진 data_dir 없으면 루트 디렉토리에서 (preprocessing.py와 같은 위치에 있는 곳) 파일을 연다?
+        만약 filename 안받았으면 data_dir에서 디폴트 파일인 self.train_file을 열고, 받은 경우 filename 파일을 연다.
         """
-        if train_dir is None:
-            print("Train file directory가 존재하지 않습니다\n")
+        if data_dir is None:
+            print("Dev 파일 디렉토리가 없습니다. 현위치로 설정합니다.\n")
+            data_dir = ""
+
+        if self.train_file is None:
+            raise ValueError("디폴트 파일이 설정되지 않았습니다.")
 
         with open(
-            os.path.join(data_dir, filename), "r", encoding="utf-8"
+            os.path.join(data_dir, self.train_file if filename is None else filename), "r", encoding="utf-8"
         ) as reader:
             input_data = json.load(reader)["data"]
         return self._create_examples(input_data, "train")
-
     
     def get_dev_examples(self, data_dir, filename=None):
         """
         Returns the evaluation example from the data directory.
         """
         if data_dir is None:
-            print("Dev 파일 디렉토리가 없습니다.\n")
+            print("Dev 파일 디렉토리가 없습니다. 현위치로 설정합니다.\n")
+            data_dir = ""
+
+        if self.dev_file is None:
+            raise ValueError("디폴트 dev 파일이 설정되지 않았습니다.")
 
         with open(
             os.path.join(data_dir, filename), "r", encoding="utf-8"
@@ -539,6 +554,7 @@ class SquadProcessor(DataProcessor):
 
 class SquadExample(object):
     """
+    스쿼드 데이터셋으로부터 로드 된 트레이닝, 테스트 예
     A single training/test example for the Squad dataset, as loaded from disk.
     Args:
         qas_id: The example's unique identifier
@@ -660,7 +676,8 @@ class SquadFeatures(object):
 
 class SquadResult(object):
     """
-   데이터 셋에 대한 겨로가를 도
+    스쿼드 데이터 셋을 처리한 모델의 아웃풋을 평가하기 위한 클래스를 만들어 줌
+   Constructs a SquadResult which can be used to evaluate a model's output on the SQuAD dataset.
     Args:
         unique_id: The unique identifier corresponding to that example.
         start_logits: The logits corresponding to the start of the answer

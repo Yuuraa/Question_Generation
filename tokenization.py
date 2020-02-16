@@ -11,12 +11,13 @@ from transformers import PreTrainedTokenizer
 
 logger = logging.getLogger(__name__)
 
+# Downloaded pre-trained vocabulary
 VOCAB_FILES_NAMES = {'vocab_file': 'tokenizer_78b3253a26.model',
                      'vocab_txt': 'vocab.txt'}
 
 SPIECE_UNDERLINE = u'▁'
 
-
+# KoBertTokenizer inherits PreTrainedTokenizer
 class KoBertTokenizer(PreTrainedTokenizer):
     """
         SentencePiece based tokenizer. Peculiarities:

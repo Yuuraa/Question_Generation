@@ -1,4 +1,4 @@
-# Question_Generation
+# Question_Generation (in progress)
 Code from hugging_face transformers 
 In this code I will use KoBERT model, not DistilBERT model 
 

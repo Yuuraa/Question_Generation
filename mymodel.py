@@ -3,6 +3,7 @@ from torch.nn.functional import softmax
 from keras.preprocessing.sequence import pad_sequences
 import torch
 
+"""
 class BertForQuestionAnswering(BertPreTrainedModel):
     def __init__(self, config):
         super(BertForQuestionAnswering, self).__init__(config)
@@ -33,7 +34,6 @@ class BertForQuestionAnswering(BertPreTrainedModel):
             head_mask=head_mask,
             inputs_embeds=inputs_embeds,
         )
-
         sequence_output = outputs[0]
 
         # output 나온 것에 Wx+b 수행한 것
@@ -62,15 +62,15 @@ class BertForQuestionAnswering(BertPreTrainedModel):
             outputs = (total_loss,) + outputs
 
         return outputs  # (loss), start_logits, end_logits, (hidden_states), (attentions)
+"""
 
-class BertQuestionGenerator(BertModel):
+class BertQuestionGenerator(BertPreTraModel):
     def __init__(self, dropout=0.9):
         super(BertQuestionGenerator,self).__init__()
         
         self.bert = get_kobert_model()
-        self.qg_outputs = torch.nn.Linear(config.hiden_size, config.num_labels)
-        # num_labels = 2, start 또는 end 가 될 수 있는 토큰 두 개
-        self.linear = torch.nn.Linear(768,1)
+        self.qg_outputs = torch.nn.Linear(config.hiden_size, config.vocab_size)
+
         self.sigmoid = torch.nn.Sigmoid()
         self.apply(self.init_weights)
             
@@ -85,7 +85,7 @@ class BertQuestionGenerator(BertModel):
                 logists = self.qg_outputs(sequence_output)
                 # softmax 수행
                 prob = softmax(logists)
-                    
+                _prob =     
                 # argmax 수행
                 q_gen = argmax(prob)
                     

@@ -15,7 +15,6 @@ from transformers import (
     WEIGHTS_NAME,
     AdamW,
     BertConfig,
-    BertForQuestionAnswering,
     BertTokenizer,
     DistilBertConfig,
     DistilBertForQuestionAnswering,
@@ -23,6 +22,7 @@ from transformers import (
     get_linear_schedule_with_warmup,
     squad_convert_examples_to_features,
 )
+from mymodel import BertQuestionGenerator
 
 from transformers.data.metrics.squad_metrics import (
     compute_predictions_log_probs,
@@ -81,6 +81,7 @@ def train(args, train_dataset, model, tokenizer):
         t_total = len(train_dataloader) // gradient_accumulation_steps * num_train_epochs
 
     # Prepare optimizer and schedule (linear warmup and decay)
+    # 옵티마이저와 스케줄 준비
     no_decay = ["bias", "LayerNorm.weight"]
     optimizer_grouped_parameters = [
         {

@@ -1,4 +1,4 @@
-from transformers import DistilBertModel, DistilBertModelfrom transformers import DistilBertModel, BertModel
+from transformers import DistilBertModel, BertModel
 from tokenization import KoBertTokenizer
 
 # Get pre-trained models

@@ -11,5 +11,9 @@ def get_kobert_model():
     model = BertModel.from_pretrained('monologg/kobert')
     return model
 
+def get_mlmkobert_model():
+    model = BertForMaskedLM.from_pretrained('monologg/kobert')
+    return model
+
 def get_tokenizer():
     return KoBertTokenizer.from_pretrained('monologg/kobert')
